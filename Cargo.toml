@@ -1,0 +1,12 @@
+[package]
+name = "nadesiko4"
+version = "0.1.0"
+edition = "2024"
+description = "Japanese programming language Nadesiko version 4"
+license = "MIT"
+repository = "https://github.com/kujirahand/nadesiko4"
+readme = "README.md"
+keywords = ["Nadesiko", "Programming", "Japanese"]
+categories = ["compilers", "text-processing", "wasm"]
+
+[dependencies]
