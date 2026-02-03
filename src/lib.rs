@@ -7,6 +7,7 @@ pub mod ast;
 pub mod ast_to_vmcode;
 pub mod error;
 pub mod source;
+pub mod value;
 
 use crate::vmcode::VmSystem;
 

@@ -1,6 +1,7 @@
 /**
  * Nadesiko4 VM code definitions
  */
+use crate::value::Value;
 
 /// VM code type
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -39,7 +40,7 @@ pub struct VmSystem {
     pub str_list: Vec<String>,
     pub num_list: Vec<f64>,
     pub bin_list: Vec<VmcodeData>,
-    pub stack: Vec<>,
+    pub stack: Vec<Value>,
     pub output: String,
     pub error: String,
 }
@@ -50,6 +51,7 @@ impl VmSystem {
             str_list: Vec::new(),
             num_list: Vec::new(),
             bin_list: Vec::new(),
+            stack: Vec::new(),
             output: String::new(),
             error: String::new(),
         }
