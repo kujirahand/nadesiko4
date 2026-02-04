@@ -80,7 +80,8 @@
 
 ## CLIコマンド
 
-- `nadesiko4 <file>`: スクリプトファイルを実行。
-- `nadesiko4 -e '<source>'`: 直接ソースコードを実行。
-- `nadesiko4 --help`: ヘルプを表示。
-- `nadesiko4 --version`: バージョン情報を表示。
+- `nadesiko4 <file>`: スクリプトファイルを実行
+- `nadesiko4 -e '<source>'`: 直接ソースコードを実行
+- `nadesiko4 --help`: ヘルプを表示
+- `nadesiko4 --version`: バージョン情報を表示
+- `nadesiko4 (--debug|-D)`: デバッグモードで実行

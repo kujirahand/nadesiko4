@@ -3,16 +3,17 @@
 
 use crate::source::SourcePos;
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub enum AstKind {
     Nop,
+    Comment,
     Node,
     Number,
     String,
     Print,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct AstNode {
     pub kind: AstKind,
     pub value_str: Option<String>,
@@ -54,6 +55,21 @@ impl AstNode {
         }
         if let Some(ref mut children) = self.children {
             children.push(child);
+        }
+    }
+    pub fn print_tree(&self, indent: usize) {
+        let indent_str = "  ".repeat(indent);
+        println!("{}AstNode: kind={:?}, value_str={:?}, value_num={:?}, pos=({:?})",
+            indent_str,
+            self.kind,
+            self.value_str,
+            self.value_num,
+            self.pos,
+        );
+        if let Some(ref children) = self.children {
+            for child in children {
+                child.print_tree(indent + 1);
+            }
         }
     }
 }

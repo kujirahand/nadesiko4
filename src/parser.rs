@@ -13,7 +13,7 @@ impl Parser {
         Parser {
             tokens,
             index: 0,
-            root: AstNode::new_nop(),
+            root: AstNode::new(AstKind::Node),
             stack: Vec::new(),
         }
     }
@@ -44,7 +44,7 @@ pub fn parse(tokens: Vec<Token>) -> AstNode {
                 parser.root.add_child(node);
             },
             TokenKind::Comment => {
-                let mut node = AstNode::new_pos(AstKind::Nop, pos);
+                let mut node = AstNode::new_pos(AstKind::Comment, pos);
                 node.value_str = token.value.clone();
                 parser.root.add_child(node);
             },
@@ -58,6 +58,11 @@ pub fn parse(tokens: Vec<Token>) -> AstNode {
                 parser.stack.push(node);
             },
             TokenKind::String => {
+                let mut node = AstNode::new_pos(AstKind::String, pos);
+                node.value_str = token.value.clone();
+                parser.stack.push(node);
+            },
+            TokenKind::Word => {
                 let mut node = AstNode::new_pos(AstKind::Nop, pos);
                 node.value_str = token.value.clone();
                 parser.stack.push(node);
@@ -70,6 +75,9 @@ pub fn parse(tokens: Vec<Token>) -> AstNode {
                     node.add_child(AstNode::new_nop());
                 }
                 parser.root.add_child(node);
+            },
+            TokenKind::EOS => {
+                // End of statement
             },
             /*
             _ => {

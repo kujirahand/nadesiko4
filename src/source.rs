@@ -1,6 +1,6 @@
 /// source code character cursor module
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct SourcePos {
     pub line: usize,
     pub column: usize,
@@ -131,6 +131,28 @@ impl Source {
                 break;
             }
         }
+    }
+    /// Test character at current position
+    pub fn test_char(&self, test_char: char) -> bool {
+        if let Some(ch) = self.peek() {
+            ch == test_char
+        } else {
+            false
+        }
+    }
+    /// Test string at current position
+    pub fn test_string(&self, test_str: &str) -> bool {
+        let test_chars: Vec<char> = test_str.chars().collect();
+        for (i, &test_ch) in test_chars.iter().enumerate() {
+            if let Some(ch) = self.source.get(self.index + i) {
+                if *ch != test_ch {
+                    return false;
+                }
+            } else {
+                return false;
+            }
+        }
+        true
     }
 }
 
