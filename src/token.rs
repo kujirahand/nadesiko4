@@ -21,6 +21,8 @@ pub enum TokenKind {
     Div,
     ParenL,
     ParenR,
+    Eq,
+    Wildcard,
 }
 impl TokenKind {
     pub fn is_operator(&self) -> bool {
@@ -53,8 +55,9 @@ impl Token {
     pub fn new(kind: TokenKind, value: Option<String>, pos: SourcePos) -> Self {
         Self { kind, value, pos, josi: None }
     }
-    pub fn new_nop(pos: SourcePos) -> Self {
-        Self::new(TokenKind::Nop, None, pos)
+    /// Create a new Nop token
+    pub fn new_nop() -> Self {
+        Self::new(TokenKind::Nop, None, SourcePos::zero())
     }
     pub fn value_is(&self, s: &str) -> bool {
         if let Some(ref val) = self.value {

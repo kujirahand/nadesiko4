@@ -55,3 +55,9 @@ fn test_complex_expression_with_josi() {
     let output = run_test("2+3*4を表示");
     assert_eq!(output.trim(), "14", "2+3*4を表示 should equal 14 (multiplication first)");
 }
+
+#[test]
+fn test_let() {
+    let output = run_test("A=30; Aを表示");
+    assert_eq!(output.trim(), "30", "A=30; Aを表示。");
+}

@@ -20,12 +20,14 @@ fn read_ast(sys: &mut NakoSystem, node: &AstNode) {
         AstKind::Node => read_node(sys, node),
         AstKind::Number => read_number(sys, node),
         AstKind::String => read_string(sys, node),
+        AstKind::Variable => read_variable(sys, node),
         AstKind::Print => read_print(sys, node),
         AstKind::Plus => read_plus(sys, node),
         AstKind::Minus => read_minus(sys, node),
         AstKind::Mul => read_mul(sys, node),
         AstKind::Div => read_div(sys, node),
         AstKind::EOS => read_eos(sys, node),
+        AstKind::Let => read_let(sys, node),
     }
 }
 
@@ -50,7 +52,7 @@ fn read_number(sys: &mut NakoSystem, node: &AstNode) {
     let index = sys.const_list.len();
     sys.const_list.push(Value::from_number(value));
     sys.codes.push(ByteCode::new(
-        ByteCodeKind::PushString,
+        ByteCodeKind::PushConst,
         index,
         0,
         0,
@@ -62,8 +64,19 @@ fn read_string(sys: &mut NakoSystem, node: &AstNode) {
     let str_index = sys.const_list.len();
     sys.const_list.push(Value::from_string(str_value));
     sys.codes.push(ByteCode::new(
-        ByteCodeKind::PushString,
+        ByteCodeKind::PushConst,
         str_index,
+        0,
+        0,
+    ));
+}
+
+fn read_variable(sys: &mut NakoSystem, node: &AstNode) {
+    let var_name = node.value.to_string();
+    let var_name_index = sys.var_table.get_name_index_create(&var_name);
+    sys.codes.push(ByteCode::new(
+        ByteCodeKind::PushVariable,
+        var_name_index,
         0,
         0,
     ));
@@ -109,5 +122,28 @@ fn read_ast_children(sys: &mut NakoSystem, node: &AstNode) {
         for child in children {
             read_ast(sys, child);
         }
+    }
+}
+
+fn read_let(sys: &mut NakoSystem, node: &AstNode) {
+    // Assuming the first child is the variable name and the second child is the value expression
+    if let Some(ref children) = node.children {
+        if children.len() == 2 {
+            let var_name_node = &children[0];
+            let var_name = var_name_node.value.to_string();
+            let var_index = sys.var_table.get_name_index_create(&var_name);
+            let value_node = &children[1];
+            // Process the value expression first
+            read_ast(sys, value_node);
+            // Store the variable
+            sys.codes.push(ByteCode::new(
+                ByteCodeKind::Let,
+                var_index,
+                0,
+                0,
+            ));
+            return;
+        }
+        sys.error("Invalid Let AST node structure");
     }
 }

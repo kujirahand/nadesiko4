@@ -12,11 +12,13 @@ pub enum AstKind {
     Node,
     Number,
     String,
+    Variable,
     Print,
     Plus,
     Minus,
     Mul,
     Div,
+    Let,
 }
 
 #[derive(Clone, Debug)]

@@ -12,12 +12,14 @@ pub fn run(sys: &mut NakoSystem) -> bool {
         let result = match code.kind {
             ByteCodeKind::Nop => exec_nop(sys, &code),
             ByteCodeKind::EOS => exec_eos(sys, &code),
-            ByteCodeKind::PushString => exec_push_string(sys, &code),
+            ByteCodeKind::PushConst => exec_push_const(sys, &code),
+            ByteCodeKind::PushVariable => exec_push_variable(sys, &code),
             ByteCodeKind::Print => exec_print(sys, &code),
             ByteCodeKind::Add => exec_add(sys, &code),
             ByteCodeKind::Sub => exec_sub(sys, &code),
             ByteCodeKind::Mul => exec_mul(sys, &code),
             ByteCodeKind::Div => exec_div(sys, &code),
+            ByteCodeKind::Let => exec_let(sys, &code),
         };
         
         if !result {
@@ -40,15 +42,44 @@ fn exec_eos(sys: &mut NakoSystem, code: &ByteCode) -> bool {
     true
 }
 
-fn exec_push_string(sys: &mut NakoSystem, code: &ByteCode) -> bool {
+fn exec_let(sys: &mut NakoSystem, code: &ByteCode) -> bool {
+    let var_index = code.arg1;
+    if let Some(value) = sys.stack.pop() {
+        if sys.is_debug {
+            println!("LET: var_index={}, value={:?}", var_index, value);
+        }
+        sys.var_table.set_by_index(var_index, value);
+    } else {
+        sys.error("Stack underflow on LET operation");
+        return false;
+    }
+    true
+}
+
+fn exec_push_const(sys: &mut NakoSystem, code: &ByteCode) -> bool {
     if code.arg1 < sys.const_list.len() {
         let value = sys.const_list[code.arg1].clone();
+        if sys.is_debug {
+            println!("PUSH_CONST: {:?}", value);
+        }
         sys.stack.push(value);
         true
     } else {
         sys.error(&format!("Invalid constant index: {}", code.arg1));
         false
     }
+}
+
+fn exec_push_variable(sys: &mut NakoSystem, code: &ByteCode) -> bool {
+    let var_index = code.arg1;
+    if var_index < sys.var_table.len() {
+        if let Some(value) = sys.var_table.get_by_index(var_index) {
+            sys.stack.push(value.clone());
+            return true;
+        }
+    }
+    sys.error(&format!("Invalid constant index: {}", code.arg1));
+    false
 }
 
 fn exec_print(sys: &mut NakoSystem, _code: &ByteCode) -> bool {

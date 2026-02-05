@@ -55,8 +55,9 @@ pub fn compile(source: &str, options: &NakoOptions) -> NakoSystem {
         ast.print_tree(0);
     }
     // bytecode
-    let sys = ast_to_bytecode::ast_to_bytecodes(&ast);
+    let mut sys = ast_to_bytecode::ast_to_bytecodes(&ast);
     if options.is_debug {
+        sys.is_debug = true;
         for (i, code) in sys.codes.iter().enumerate() {
             println!("ByteCode[{}]: kind={:?}, arg1={}, arg2={}, arg3={}",
                 i,
@@ -73,6 +74,9 @@ pub fn compile(source: &str, options: &NakoOptions) -> NakoSystem {
 /// Execute easy for test and simple usage.
 pub fn run_easy(source: &str, options: &NakoOptions) -> String {
     let mut sys = compile(source, options);
+    if options.is_debug {
+        println!("<Execution>---------------------");
+    }
     vm::run(&mut sys);
     if sys.error_msg.len() > 0 {
         return sys.error_msg;

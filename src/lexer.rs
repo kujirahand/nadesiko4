@@ -2,7 +2,7 @@ use crate::source::Source;
 
 /// lexer module
 use crate::token::{Token, TokenKind};
-use crate::char_type::{is_hiragana, is_kanji, is_katakana};
+use crate::char_type::{is_alphabet, is_hiragana, is_kanji, is_katakana};
 
 static JOSI2: [&str; 5] = ["から", "まで", "から", "には", "とは"];
 static JOSI1: [char; 8] = ['と', 'は', 'が', 'を', 'に', 'で', 'へ', 'の'];
@@ -26,6 +26,7 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
             '/' | '÷' => tokens.push(get_operator(src, '/', TokenKind::Div)),
             '（' | '(' => tokens.push(get_operator(src, '(', TokenKind::ParenL)),
             '）' | ')' => tokens.push(get_operator(src, ')', TokenKind::ParenR)),
+            '＝' | '=' => tokens.push(get_operator(src, '=', TokenKind::Eq)),
             _ if is_japanese_word(ch) => lex_japanese_word(src, &mut tokens),
             _ => lex_unknown(src, &mut tokens, ch),
         }
@@ -65,12 +66,12 @@ fn lex_alphabetic_word(src: &mut Source, tokens: &mut Vec<Token>) {
     let mut word = String::new();
     // 英単語 + 助詞
     while let Some(c) = src.peek() {
-        if c.is_alphabetic() || c == '_' {
+        if is_alphabet(c) || c == '_' {
             word.push(c);
             src.next();
-        } else {
-            break;
+            continue;
         }
+        break;
     }
     let mut tok = Token::new(TokenKind::Word, Some(word), pos);
     tok.josi = get_josi(src);
