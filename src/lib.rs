@@ -11,6 +11,7 @@ pub mod value;
 pub mod char_type;
 
 use crate::bytecode::NakoSystem;
+use crate::token::TokenKind;
 
 /// Options for Nako4 compiler and VM
 pub struct NakoOptions {
@@ -39,13 +40,14 @@ pub fn compile(source: &str, options: &NakoOptions) -> NakoSystem {
     // lex
     let tokens = lexer::lex(&mut src);
     if options.is_debug {
+        println!("<Tokens>---------------------");
         for token in &tokens {
-            println!("Token: kind={:?}, value={:?}, pos=({:?})",
-                token.kind,
-                token.value,
-                token.pos,
-            );
+            print!("[{}]", token);
+            if token.kind == TokenKind::EOS {
+                println!();
+            }
         }
+        println!("\n</Tokens>--------------------");
     }
     // parse
     let ast = parser::parse(tokens);
@@ -76,4 +78,13 @@ pub fn run_easy(source: &str, options: &NakoOptions) -> String {
         return sys.error_msg;
     }
     sys.output
+}
+
+/// Run test code and return output string
+pub fn run_test(source: &str) -> String {
+    let options = NakoOptions {
+        is_debug: false,
+    };
+    let outout = run_easy(source, &options);
+    outout.trim().to_string()
 }

@@ -2,8 +2,9 @@
 /// Defines the Abstract Syntax Tree (AST) structure.
 
 use crate::source::SourcePos;
+use crate::value::Value;
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum AstKind {
     Nop,
     Comment,
@@ -11,13 +12,16 @@ pub enum AstKind {
     Number,
     String,
     Print,
+    Plus,
+    Minus,
+    Mul,
+    Div,
 }
 
 #[derive(Clone, Debug)]
 pub struct AstNode {
     pub kind: AstKind,
-    pub value_str: Option<String>,
-    pub value_num: Option<f64>,
+    pub value: Value,
     pub children: Option<Vec<AstNode>>,
     pub pos: SourcePos,
 }
@@ -25,8 +29,7 @@ impl AstNode {
     pub fn new_nop() -> Self {
         AstNode {
             kind: AstKind::Nop,
-            value_str: None,
-            value_num: None,
+            value: Value::None,
             children: None,
             pos: SourcePos::zero(),
         }
@@ -34,8 +37,7 @@ impl AstNode {
     pub fn new(kind: AstKind) -> Self {
         AstNode {
             kind,
-            value_str: None,
-            value_num: None,
+            value: Value::None,
             children: None,
             pos: SourcePos::zero(),
         }
@@ -43,8 +45,7 @@ impl AstNode {
     pub fn new_pos(kind: AstKind, pos: SourcePos) -> Self {
         AstNode {
             kind,
-            value_str: None,
-            value_num: None,
+            value: Value::None,
             children: None,
             pos,
         }
@@ -59,11 +60,10 @@ impl AstNode {
     }
     pub fn print_tree(&self, indent: usize) {
         let indent_str = "  ".repeat(indent);
-        println!("{}AstNode: kind={:?}, value_str={:?}, value_num={:?}, pos=({:?})",
+        println!("{}AstNode: kind={:?}, value={:?}, pos=({:?})",
             indent_str,
             self.kind,
-            self.value_str,
-            self.value_num,
+            self.value,
             self.pos,
         );
         if let Some(ref children) = self.children {

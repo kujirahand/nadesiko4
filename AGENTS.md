@@ -85,3 +85,12 @@
 - `nadesiko4 --help`: ヘルプを表示
 - `nadesiko4 --version`: バージョン情報を表示
 - `nadesiko4 (--debug|-D)`: デバッグモードで実行
+
+## 実行までの仕組み
+
+1. ソース文字列から`Source`を生成し、行・桁を持ったカーソルで1文字ずつ走査
+2. `lexer::lex`が数字/文字列/単語/記号を判別し、`pos`と助詞`josi`付き`Vec<Token>`へ分割（未対応文字は`Nop`）
+3. `parser::parse`がトークン列を読み、値付きASTノードをスタック経由で組み立て、`Print`などの構文でルートに確定
+4. `ast_to_bytecode::ast_to_bytecodes`がASTをたどり、`NakoSystem`にオペコード列とリテラル(文字列/数値)を積む
+5. `vm::run`がスタックVMでバイトコードを逐次実行し、演算結果や`表示`の文字列を`output`へ追記
+6. 実行完了時に`output`を返し、エラーがあればエラーメッセージ文字列を返す

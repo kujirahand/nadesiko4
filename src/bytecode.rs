@@ -9,6 +9,10 @@ pub enum ByteCodeKind {
     Nop = 0,
     Print = 1,
     PushString = 2,
+    Add = 3,
+    Sub = 4,
+    Mul = 5,
+    Div = 6,
 }
 
 /// VM code structure

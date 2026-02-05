@@ -11,7 +11,7 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
     let mut tokens: Vec<Token> = Vec::new();
 
     while let Some(ch) = src.peek() {
-        println!("ch: {:?}", ch);
+        // println!("ch: {:?}", ch);
         let pos = src.get_position();
         match ch {
             ' ' | '\t' | '\r' => { // whitespace
@@ -33,7 +33,9 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
                         break;
                     }
                 }
-                tokens.push(Token::new(TokenKind::Number, Some(number), pos));
+                let mut tok = Token::new(TokenKind::Number, Some(number), pos);
+                tok.josi = get_josi(src, true);
+                tokens.push(tok);
             }
             'a'..='z' | 'A'..='Z' => {
                 // Alphabetic word
@@ -66,6 +68,10 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
                 src.next();
                 tokens.push(Token::new(TokenKind::EOS, Some(symbol), pos));
             }
+            '+' | '＋' => tokens.push(get_operator(src, '+', TokenKind::Plus)),
+            '-' | '−' => tokens.push(get_operator(src, '-', TokenKind::Minus)),
+            '*' | '＊' | '×' => tokens.push(get_operator(src, '*', TokenKind::Mul)),
+            '/' | '÷' => tokens.push(get_operator(src, '/', TokenKind::Div)),
             _ if is_kanji(ch) => {
                 let tok = match get_word(src) {
                     Some(mut t) => {
@@ -89,6 +95,12 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
     }
     
     tokens
+}
+
+fn get_operator(src: &mut Source, op_char: char, kind: TokenKind) -> Token {
+    let pos = src.get_position();
+    src.next(); // consume operator
+    Token::new(kind, Some(op_char.to_string()), pos)
 }
 
 /// Helper function to extract string literals
@@ -120,7 +132,7 @@ fn get_string_literal(src: &mut Source, bos: char, eos: char) -> Token {
         }
         literal.push(next_ch);
     }
-    Token::new(TokenKind::String, Some(literal), pos)
+    Token::new(TokenKind::Str, Some(literal), pos)
 }
 
 /// Check and extract josi (particles)

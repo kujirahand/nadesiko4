@@ -105,11 +105,17 @@ impl Source {
     /// Get the token
     pub fn get_token(&mut self, end_of_token: char) -> String {
         let mut token = String::new();
-        while let Some(ch) = self.next() {
+        while let Some(ch) = self.peek() {
             if ch == end_of_token {
+                // Consume the delimiter but keep position at the end of the token
+                self.next();
+                if self.pos.column > 0 {
+                    self.pos.column -= 1;
+                }
                 break;
             }
             token.push(ch);
+            self.next();
         }
         token
     }

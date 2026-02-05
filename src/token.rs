@@ -1,6 +1,8 @@
 /// Token module
 /// Defines the Token struct used by the lexer.
 
+use std::fmt;
+
 use crate::source::SourcePos;
 
 /// Different kinds of tokens.
@@ -10,9 +12,21 @@ pub enum TokenKind {
     Comment,
     EOS,
     Number,
-    String,
+    Str,
     Word,
     Print,
+    Plus,
+    Minus,
+    Mul,
+    Div,
+}
+impl TokenKind {
+    pub fn is_operator(&self) -> bool {
+        matches!(self,
+            TokenKind::Plus | TokenKind::Minus |
+            TokenKind::Mul | TokenKind::Div
+        )
+    }
 }
 
 /// Token structure
@@ -46,6 +60,18 @@ impl Token {
             val == s
         } else {
             false
+        }
+    }
+}
+/// Human-friendly display of tokens for logging/debug output.
+impl fmt::Display for Token {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let value = self.value.as_deref().unwrap_or("").replace("\n", "¶");
+        let pos = self.pos;
+        if let Some(josi) = &self.josi {
+            write!(f, "{:?}({}){}@{}:{}", self.kind, value, josi, pos.line, pos.column)
+        } else {
+            write!(f, "{:?}({})@{}:{}", self.kind, value, pos.line, pos.column)
         }
     }
 }
