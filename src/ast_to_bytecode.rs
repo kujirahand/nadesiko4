@@ -25,6 +25,7 @@ fn read_ast(sys: &mut NakoSystem, node: &AstNode) {
         AstKind::Minus => read_minus(sys, node),
         AstKind::Mul => read_mul(sys, node),
         AstKind::Div => read_div(sys, node),
+        AstKind::EOS => read_eos(sys, node),
     }
 }
 
@@ -91,6 +92,15 @@ fn read_mul(sys: &mut NakoSystem, node: &AstNode) {
 fn read_div(sys: &mut NakoSystem, node: &AstNode) {
     read_ast_children(sys, node);
     sys.codes.push(ByteCode::new(ByteCodeKind::Div, 0, 0, 0));
+}
+
+fn read_eos(sys: &mut NakoSystem, node: &AstNode) {
+    sys.codes.push(ByteCode::new(
+        ByteCodeKind::EOS,
+        node.pos.line,
+        0,
+        0,
+    ));
 }
 
 /// Read AST children nodes

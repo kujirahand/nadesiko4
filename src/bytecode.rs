@@ -7,12 +7,13 @@ use crate::value::Value;
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum ByteCodeKind {
     Nop = 0,
-    Print = 1,
-    PushString = 2,
-    Add = 3,
-    Sub = 4,
-    Mul = 5,
-    Div = 6,
+    EOS,
+    Print,
+    PushString,
+    Add,
+    Sub,
+    Mul,
+    Div,
 }
 
 /// VM code structure
@@ -48,6 +49,7 @@ pub struct NakoSystem {
     pub stack: Vec<Value>,
     pub output: String,
     pub error_msg: String,
+    pub src_lineno: usize,
 }
 impl NakoSystem {
     pub fn new() -> Self {
@@ -57,6 +59,7 @@ impl NakoSystem {
             stack: Vec::new(),
             output: String::new(),
             error_msg: String::new(),
+            src_lineno: 0,
         }
     }
     pub fn print(&mut self, msg: &str) {

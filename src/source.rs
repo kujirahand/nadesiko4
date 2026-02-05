@@ -1,9 +1,21 @@
 /// source code character cursor module
+use crate::char_type;
 
 #[derive(Copy, Clone, Debug)]
 pub struct SourcePos {
     pub line: usize,
     pub column: usize,
+}
+impl SourcePos {
+    pub fn new(line: usize, column: usize) -> Self {
+        SourcePos { line, column }
+    }
+    pub fn to_touple(&self) -> (usize, usize) {
+        (self.line, self.column)
+    }
+    pub fn zero() -> Self {
+        SourcePos { line: 0, column: 0 }
+    }
 }
 
 #[derive(Clone)]
@@ -12,14 +24,6 @@ pub struct Source {
     start_pos: SourcePos,
     index: usize,
     pos: SourcePos,
-}
-impl SourcePos {
-    pub fn new(line: usize, column: usize) -> Self {
-        SourcePos { line, column }
-    }
-    pub fn zero() -> Self {
-        SourcePos { line: 0, column: 0 }
-    }
 }
 
 impl Source {
@@ -49,6 +53,12 @@ impl Source {
         )
     }
     /// Get the current character
+    pub fn get_pos_tuple(&self) -> (usize, usize) {
+        let pos = self.get_position();
+        (pos.line, pos.column)
+    }
+
+    /// Get the current character
     pub fn peek(&self) -> Option<char> {
         if self.index < self.source.len() {
             Some(self.source[self.index])
@@ -72,6 +82,12 @@ impl Source {
             None
         }
     }
+    /// Advance the cursor by n characters
+    pub fn next_n(&mut self, n: usize) {
+        for _ in 0..n {
+            self.next();
+        }
+    }
     /// prev the cursor
     pub fn prev(&mut self) {
         if self.index > 0 {
@@ -92,6 +108,10 @@ impl Source {
     /// Check if the cursor has reached the end of the source
     pub fn is_eof(&self) -> bool {
         self.index >= self.source.len()
+    }
+    /// Check if the cursor has reached the end of the source
+    pub fn has_more(&self) -> bool {
+        self.index < self.source.len()
     }
     /// Reset the cursor to the beginning
     pub fn reset(&mut self) {
@@ -120,11 +140,22 @@ impl Source {
         token
     }
     /// Get the substring from current to the given length
-    pub fn get_substring(&self, length: usize) -> String {
+    pub fn peek_n(&self, length: usize) -> String {
         let mut substring = String::new();
         let end_index = usize::min(self.index + length, self.source.len());
         for i in self.index..end_index {
             substring.push(self.source[i]);
+        }
+        substring
+    }
+    /// Get the substring from current to the given length
+    pub fn get_n(&mut self, length: usize) -> String {
+        let mut remain = length;
+        let mut substring = String::new();
+        while let Some(ch) = self.next() {
+            substring.push(ch);
+            remain -= 1;
+            if remain <= 0 { break; }
         }
         substring
     }
@@ -160,27 +191,32 @@ impl Source {
         }
         true
     }
+
+    /// Check if current character is kanji
+    pub fn is_kanji(&self) -> bool {
+        if let Some(c) = self.peek() {
+            char_type::is_kanji(c)
+        } else {
+            false
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{Source, SourcePos};
-
-    fn pos_tuple(pos: SourcePos) -> (usize, usize) {
-        (pos.line, pos.column)
-    }
+    use super::{Source};
 
     #[test]
     fn next_and_positions_progress() {
         let mut cur = Source::new("ab");
-        assert_eq!(pos_tuple(cur.get_position()), (0, 0));
+        assert_eq!(cur.get_pos_tuple(), (0, 0));
         assert_eq!(cur.peek(), Some('a'));
 
         assert_eq!(cur.next(), Some('a'));
-        assert_eq!(pos_tuple(cur.get_position()), (0, 1));
+        assert_eq!(cur.get_pos_tuple(), (0, 1));
 
         assert_eq!(cur.next(), Some('b'));
-        assert_eq!(pos_tuple(cur.get_position()), (0, 2));
+        assert_eq!(cur.get_pos_tuple(), (0, 2));
         assert!(cur.is_eof());
     }
 
@@ -188,13 +224,13 @@ mod tests {
     fn newline_updates_line_and_column() {
         let mut cur = Source::new("a\nb");
         cur.next();
-        assert_eq!(pos_tuple(cur.get_position()), (0, 1));
+        assert_eq!(cur.get_pos_tuple(), (0, 1));
 
         cur.next(); // '\n'
-        assert_eq!(pos_tuple(cur.get_position()), (1, 1));
+        assert_eq!(cur.get_pos_tuple(), (1, 1));
 
         cur.next();
-        assert_eq!(pos_tuple(cur.get_position()), (1, 2));
+        assert_eq!(cur.get_pos_tuple(), (1, 2));
     }
 
     #[test]
@@ -202,14 +238,14 @@ mod tests {
         let mut cur = Source::new("ab");
         cur.next();
         cur.next();
-        assert_eq!(pos_tuple(cur.get_position()), (0, 2));
+        assert_eq!(cur.get_pos_tuple(), (0, 2));
 
         cur.prev();
-        assert_eq!(pos_tuple(cur.get_position()), (0, 1));
+        assert_eq!(cur.get_pos_tuple(), (0, 1));
         assert_eq!(cur.peek(), Some('b'));
 
         cur.prev();
-        assert_eq!(pos_tuple(cur.get_position()), (0, 1));
+        assert_eq!(cur.get_pos_tuple(), (0, 1));
         assert_eq!(cur.peek(), Some('a'));
     }
 
@@ -218,23 +254,82 @@ mod tests {
         let mut cur = Source::new("hello,world");
         let tok = cur.get_token(',');
         assert_eq!(tok, "hello");
-        assert_eq!(pos_tuple(cur.get_position()), (0, 5));
+        assert_eq!(cur.get_pos_tuple(), (0, 5));
         assert_eq!(cur.peek(), Some('w'));
     }
 
     #[test]
     fn get_substring_clamps_length() {
         let mut cur = Source::new("abc");
-        assert_eq!(cur.get_substring(2), "ab");
+        assert_eq!(cur.peek_n(2), "ab");
         cur.next();
-        assert_eq!(cur.get_substring(5), "bc");
+        assert_eq!(cur.peek_n(5), "bc");
+    }
+
+    #[test]
+    fn get_substring_clamps_length_multibyte() {
+        let mut cur = Source::new("あいう");
+        assert_eq!(cur.peek_n(2), "あい");
+        cur.next();
+        assert_eq!(cur.peek_n(5), "いう");
+    }
+
+    #[test]
+    fn get_n_test() {
+        let mut cur = Source::new("あいうえお");
+        assert_eq!(cur.get_n(2), "あい");
+        assert_eq!(cur.get_n(5), "うえお");
+    }
+
+    #[test]
+    fn get_n_and_prev_test() {
+        let mut cur = Source::new("あいうえお");
+        assert_eq!(cur.get_n(1), "あ");
+        assert_eq!(cur.get_n(2), "いう");
+        cur.prev();
+        assert_eq!(cur.get_n(2), "うえ");
+    }
+
+    #[test]
+    fn get_substring_with_zero_length() {
+        let cur = Source::new("abc");
+        assert_eq!(cur.peek_n(0), "");
+    }
+
+    #[test]
+    fn get_substring_exact_remaining() {
+        let mut cur = Source::new("abc");
+        cur.next(); // at 'b'
+        assert_eq!(cur.peek_n(2), "bc");
+    }
+
+    #[test]
+    fn get_substring_from_end() {
+        let mut cur = Source::new("abc");
+        cur.next();
+        cur.next();
+        cur.next(); // at EOF
+        assert_eq!(cur.peek_n(1), "");
+    }
+
+    #[test]
+    fn get_substring_with_japanese() {
+        let cur = Source::new("あいうえお");
+        assert_eq!(cur.peek_n(2), "あい");
+        assert_eq!(cur.peek_n(5), "あいうえお");
+    }
+
+    #[test]
+    fn get_substring_empty_source() {
+        let cur = Source::new("");
+        assert_eq!(cur.peek_n(5), "");
     }
 
     #[test]
     fn skip_whitespace_advances_to_content() {
         let mut cur = Source::new("  \tabc");
         cur.skip_whitespace();
-        assert_eq!(pos_tuple(cur.get_position()), (0, 3));
+        assert_eq!(cur.get_pos_tuple(), (0, 3));
         assert_eq!(cur.peek(), Some('a'));
     }
 
@@ -244,7 +339,7 @@ mod tests {
         cur.next();
         cur.next();
         cur.reset();
-        assert_eq!(pos_tuple(cur.get_position()), (0, 0));
+        assert_eq!(cur.get_pos_tuple(), (0, 0));
         assert_eq!(cur.peek(), Some('a'));
     }
 }

@@ -19,6 +19,8 @@ pub enum TokenKind {
     Minus,
     Mul,
     Div,
+    ParenL,
+    ParenR,
 }
 impl TokenKind {
     pub fn is_operator(&self) -> bool {
@@ -38,22 +40,21 @@ pub struct Token {
     pub josi: Option<String>,
 }
 impl Token {
-    /// Create a new token
-    pub fn new(kind: TokenKind, value: Option<String>, pos: SourcePos) -> Self {
+    /// Create a new token with josi
+    pub fn new_arg(kind: TokenKind, value: &str, josi: &str, pos: SourcePos) -> Self {
         Token {
             kind,
-            value,
-            pos: pos,
-            josi: None,
+            value: Some(value.to_string()),
+            pos,
+            josi: Some(josi.to_string()),
         }
     }
+    /// Create a new token
+    pub fn new(kind: TokenKind, value: Option<String>, pos: SourcePos) -> Self {
+        Self { kind, value, pos, josi: None }
+    }
     pub fn new_nop(pos: SourcePos) -> Self {
-        Token {
-            kind: TokenKind::Nop,
-            value: None,
-            pos: pos,
-            josi: None,
-        }
+        Self::new(TokenKind::Nop, None, pos)
     }
     pub fn value_is(&self, s: &str) -> bool {
         if let Some(ref val) = self.value {

@@ -1,5 +1,5 @@
 //! Virtual Machine module
-use crate::bytecode::{NakoSystem, ByteCodeKind};
+use crate::bytecode::{ByteCode, ByteCodeKind, NakoSystem};
 
 /// Run the VM with the given VM system
 pub fn run(sys: &mut NakoSystem) -> bool {
@@ -7,15 +7,17 @@ pub fn run(sys: &mut NakoSystem) -> bool {
     let code_len = sys.codes.len();
 
     while pc < code_len {
-        let code = &sys.codes[pc];
+        // Copy out the current instruction to avoid borrowing sys while executing
+        let code = sys.codes[pc];
         let result = match code.kind {
-            ByteCodeKind::Nop => exec_nop(sys),
-            ByteCodeKind::PushString => exec_push_string(sys, code.arg1),
-            ByteCodeKind::Print => exec_print(sys),
-            ByteCodeKind::Add => exec_add(sys),
-            ByteCodeKind::Sub => exec_sub(sys),
-            ByteCodeKind::Mul => exec_mul(sys),
-            ByteCodeKind::Div => exec_div(sys),
+            ByteCodeKind::Nop => exec_nop(sys, &code),
+            ByteCodeKind::EOS => exec_eos(sys, &code),
+            ByteCodeKind::PushString => exec_push_string(sys, &code),
+            ByteCodeKind::Print => exec_print(sys, &code),
+            ByteCodeKind::Add => exec_add(sys, &code),
+            ByteCodeKind::Sub => exec_sub(sys, &code),
+            ByteCodeKind::Mul => exec_mul(sys, &code),
+            ByteCodeKind::Div => exec_div(sys, &code),
         };
         
         if !result {
@@ -28,23 +30,28 @@ pub fn run(sys: &mut NakoSystem) -> bool {
     true
 }
 
-fn exec_nop(_sys: &mut NakoSystem) -> bool {
+fn exec_nop(_sys: &mut NakoSystem, _code: &ByteCode) -> bool {
     // Do nothing
     true
 }
 
-fn exec_push_string(sys: &mut NakoSystem, const_index: usize) -> bool {
-    if const_index < sys.const_list.len() {
-        let value = sys.const_list[const_index].clone();
+fn exec_eos(sys: &mut NakoSystem, code: &ByteCode) -> bool {
+    sys.src_lineno = code.arg1;
+    true
+}
+
+fn exec_push_string(sys: &mut NakoSystem, code: &ByteCode) -> bool {
+    if code.arg1 < sys.const_list.len() {
+        let value = sys.const_list[code.arg1].clone();
         sys.stack.push(value);
         true
     } else {
-        sys.error(&format!("Invalid constant index: {}", const_index));
+        sys.error(&format!("Invalid constant index: {}", code.arg1));
         false
     }
 }
 
-fn exec_print(sys: &mut NakoSystem) -> bool {
+fn exec_print(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
     if let Some(value) = sys.stack.pop() {
         println!("[PRINT]{:?}", value);
         sys.println(&value.to_string());
@@ -55,7 +62,7 @@ fn exec_print(sys: &mut NakoSystem) -> bool {
     }
 }
 
-fn exec_add(sys: &mut NakoSystem) -> bool {
+fn exec_add(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
     if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
         if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
             sys.stack.push(crate::value::Value::from_number(l + r));
@@ -70,7 +77,7 @@ fn exec_add(sys: &mut NakoSystem) -> bool {
     }
 }
 
-fn exec_sub(sys: &mut NakoSystem) -> bool {
+fn exec_sub(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
     if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
         if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
             sys.stack.push(crate::value::Value::from_number(l - r));
@@ -85,7 +92,7 @@ fn exec_sub(sys: &mut NakoSystem) -> bool {
     }
 }
 
-fn exec_mul(sys: &mut NakoSystem) -> bool {
+fn exec_mul(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
     if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
         if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
             sys.stack.push(crate::value::Value::from_number(l * r));
@@ -100,7 +107,7 @@ fn exec_mul(sys: &mut NakoSystem) -> bool {
     }
 }
 
-fn exec_div(sys: &mut NakoSystem) -> bool {
+fn exec_div(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
     if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
         if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
             if r == 0.0 {

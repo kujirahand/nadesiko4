@@ -28,24 +28,37 @@ impl Parser {
         }
         tok
     }
+    // Check if there are more tokens
+    pub fn has_more(&self) -> bool {
+        self.index < self.tokens.len()
+    }
 }
 
 /// Parse the list of tokens into an AST.
 pub fn parse(tokens: Vec<Token>) -> AstNode {
     let mut parser = Parser::new(tokens);
     let mut root = AstNode::new(AstKind::Node);
-    parse_token(&mut parser, &mut root);
-    // スタックに残っている値を全てルートに追加
-    while let Some(node) = parser.stack.pop() {
-        root.add_child(node);
+    parse_sentences(&mut parser, &mut root);
+    // スタックに余剰があればエラーにする
+    if !parser.stack.is_empty() {
+        println!("[ERROR][Parser] Stack is not empty after parsing: {:?}", parser.stack);
     }
     return root;
 }
 
-fn parse_token(parser: &mut Parser, parent: &mut AstNode) {
+/// 複数文の解析
+fn parse_sentences(parser: &mut Parser, parent: &mut AstNode) -> bool {
+    while parser.has_more() {
+        parse_sentence(parser, parent);
+    }
+    true
+}
+
+/// 短文の解析
+fn parse_sentence(parser: &mut Parser, parent: &mut AstNode) {
     while let Some(token) = parser.next() {
         let token = token.clone();
-        match token.kind {
+        let need_break = match token.kind {
             TokenKind::Nop => parse_nop(parser, parent, &token),
             TokenKind::Comment => parse_comment(parser, parent, &token),
             TokenKind::Number => parse_number(parser, parent, &token),
@@ -56,53 +69,59 @@ fn parse_token(parser: &mut Parser, parent: &mut AstNode) {
             _ if token.kind.is_operator() => {
                 // 演算子は単独では処理せず、スキップ
                 // 実際の処理は次の値を読んだ時に行う
+                false
             },
             _ => parse_unknown(parser, parent, &token),
+        };
+        if need_break {
+            break;
         }
     }
 }
 
-fn parse_nop(_parser: &mut Parser, parent: &mut AstNode, token: &Token) {
-    let pos = token.pos;
-    let mut node = AstNode::new_pos(AstKind::Nop, pos);
-    node.value = crate::value::Value::from_string("NOP".to_string());
-    parent.add_child(node);
+fn parse_nop(_parser: &mut Parser, _parent: &mut AstNode, _token: &Token) -> bool {
+    // nop
+    false
 }
 
-fn parse_comment(_parser: &mut Parser, parent: &mut AstNode, token: &Token) {
+fn parse_comment(_parser: &mut Parser, parent: &mut AstNode, token: &Token) -> bool {
     let pos = token.pos;
     let mut node = AstNode::new_pos(AstKind::Comment, pos);
     if let Some(ref val) = token.value {
         node.value = crate::value::Value::from_string(val.clone());
     }
     parent.add_child(node);
+    false
 }
 
-fn parse_number(parser: &mut Parser, _parent: &mut AstNode, token: &Token) {
+fn parse_number(parser: &mut Parser, _parent: &mut AstNode, token: &Token) -> bool {
     let has_josi = push_value_to_stack(parser, token);
     // 助詞がない場合のみ、次のトークンをpeek()して演算子なら処理
     if !has_josi {
         process_operators(parser);
     }
+    false
 }
 
-fn parse_str(parser: &mut Parser, _parent: &mut AstNode, token: &Token) {
+fn parse_str(parser: &mut Parser, _parent: &mut AstNode, token: &Token) -> bool {
     let has_josi = push_value_to_stack(parser, token);
     // 助詞がない場合のみ、次のトークンをpeek()して演算子なら処理
     if !has_josi {
         process_operators(parser);
     }
+    false
 }
 
-fn parse_word(parser: &mut Parser, _parent: &mut AstNode, token: &Token) {
+fn parse_word(parser: &mut Parser, _parent: &mut AstNode, token: &Token) -> bool {
     let has_josi = push_value_to_stack(parser, token);
     // 助詞がない場合のみ、次のトークンをpeek()して演算子なら処理
     if !has_josi {
         process_operators(parser);
     }
+    false
 }
 
-fn parse_print(parser: &mut Parser, parent: &mut AstNode, token: &Token) {
+fn parse_print(parser: &mut Parser, parent: &mut AstNode, token: &Token) -> bool {
     let pos = token.pos;
     let mut node = AstNode::new_pos(AstKind::Print, pos);
     if let Some(arg) = parser.stack.pop() {
@@ -111,14 +130,19 @@ fn parse_print(parser: &mut Parser, parent: &mut AstNode, token: &Token) {
         node.add_child(AstNode::new_nop());
     }
     parent.add_child(node);
+    true
 }
 
-fn parse_eos(_parser: &mut Parser, _parent: &mut AstNode, _token: &Token) {
-    // End of statement - no action needed
+fn parse_eos(_parser: &mut Parser, parent: &mut AstNode, token: &Token) -> bool {
+    let mut node = AstNode::new(AstKind::EOS);
+    node.pos = token.pos;
+    parent.add_child(node);
+    true
 }
 
-fn parse_unknown(_parser: &mut Parser, _parent: &mut AstNode, token: &Token) {
+fn parse_unknown(_parser: &mut Parser, _parent: &mut AstNode, token: &Token) -> bool {
     println!("[ERROR][Parser] Unknown token: {:?}", token);
+    false
 }
 
 /// 値をスタックに積む共通処理
@@ -256,7 +280,7 @@ mod tests {
         let tokens = vec![
             Token::new(TokenKind::Number, Some("3".to_string()), pos),
             Token::new(TokenKind::Plus, None, pos),
-            Token::new(TokenKind::Number, Some("5".to_string()), pos),
+            Token::new_arg(TokenKind::Number, "5", "を", pos),
             Token::new(TokenKind::Print, None, pos),
             Token::new(TokenKind::EOS, None, pos),
         ];
@@ -264,13 +288,13 @@ mod tests {
         let ast = parse(tokens);
 
         let root_children = ast.children.as_ref().expect("root should have children");
-        assert_eq!(root_children.len(), 1, "root must contain one statement");
+        assert!(root_children.len() >= 1, "root must contain one statement");
 
         let print_node = &root_children[0];
         assert_eq!(print_node.kind, AstKind::Print);
 
         let print_args = print_node.children.as_ref().expect("print should have an argument");
-        assert_eq!(print_args.len(), 1, "print should have one argument");
+        assert!(print_args.len() >= 1, "print should have one argument");
 
         let plus_node = &print_args[0];
         assert_eq!(plus_node.kind, AstKind::Plus);

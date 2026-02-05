@@ -8,6 +8,7 @@ use crate::value::Value;
 pub enum AstKind {
     Nop,
     Comment,
+    EOS, // End of Statement
     Node,
     Number,
     String,
