@@ -63,6 +63,7 @@ fn lex_number(src: &mut Source, tokens: &mut Vec<Token>) {
 fn lex_alphabetic_word(src: &mut Source, tokens: &mut Vec<Token>) {
     let pos = src.get_position();
     let mut word = String::new();
+    // 英単語 + 助詞
     while let Some(c) = src.peek() {
         if c.is_alphabetic() || c == '_' {
             word.push(c);
@@ -111,7 +112,12 @@ fn lex_unknown(src: &mut Source, tokens: &mut Vec<Token>, ch: char) {
 fn get_operator(src: &mut Source, op_char: char, kind: TokenKind) -> Token {
     let pos = src.get_position();
     src.next(); // consume operator
-    Token::new(kind, Some(op_char.to_string()), pos)
+    let mut op = Token::new(kind, Some(op_char.to_string()), pos);
+    // 閉じ括弧の時は助詞があるかも
+    if op_char == ')' {
+        op.josi = get_josi(src);
+    }
+    op
 }
 
 /// Helper function to extract string literals

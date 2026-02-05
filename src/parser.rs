@@ -66,6 +66,7 @@ fn parse_sentence(parser: &mut Parser, parent: &mut AstNode) {
             TokenKind::Word => parse_word(parser, parent, &token),
             TokenKind::Print => parse_print(parser, parent, &token),
             TokenKind::EOS => parse_eos(parser, parent, &token),
+            TokenKind::ParenL => parse_parenthesis(parser, parent, &token),
             _ if token.kind.is_operator() => {
                 // 演算子は単独では処理せず、スキップ
                 // 実際の処理は次の値を読んだ時に行う
@@ -140,6 +141,60 @@ fn parse_eos(_parser: &mut Parser, parent: &mut AstNode, token: &Token) -> bool 
     true
 }
 
+fn parse_parenthesis(parser: &mut Parser, _parent: &mut AstNode, start_token: &Token) -> bool {
+    // 括弧内の式を解析するために一時的なトークン列を収集
+    let mut paren_tokens = Vec::new();
+    let mut paren_level = 1;
+    
+    while let Some(token) = parser.next() {
+        let token = token.clone();
+        match token.kind {
+            TokenKind::ParenL => {
+                paren_level += 1;
+                paren_tokens.push(token);
+            },
+            TokenKind::ParenR => {
+                paren_level -= 1;
+                if paren_level == 0 {
+                    // 括弧を閉じたので、括弧内の式を解析
+                    let mut sub_parser = Parser::new(paren_tokens);
+                    let mut dummy_parent = AstNode::new(AstKind::Node);
+                    parse_sentence(&mut sub_parser, &mut dummy_parent);
+                    
+                    // 括弧内の式の結果をスタックに移す
+                    if let Some(result) = sub_parser.stack.pop() {
+                        parser.stack.push(result);
+                    } else if let Some(children) = dummy_parent.children {
+                        // スタックが空の場合、親ノードの最初の子を使う
+                        if !children.is_empty() {
+                            parser.stack.push(children[0].clone());
+                        }
+                    }
+                    
+                    // 括弧の後に演算子がある場合の処理
+                    // 次のトークンをチェック
+                    if let Some(next_token) = parser.peek() {
+                        if next_token.kind.is_operator() {
+                            process_operators(parser);
+                        }
+                    }
+                    
+                    return false;
+                }
+                paren_tokens.push(token);
+            },
+            _ => {
+                paren_tokens.push(token);
+            }
+        }
+    }
+    
+    // 括弧が閉じられなかった場合のエラー
+    println!("[ERROR][Parser] Unmatched parenthesis at {}:{}", 
+        start_token.pos.line, start_token.pos.column);
+    false
+}
+
 fn parse_unknown(_parser: &mut Parser, _parent: &mut AstNode, token: &Token) -> bool {
     println!("[ERROR][Parser] Unknown token: {:?}", token);
     false
@@ -203,11 +258,22 @@ fn process_operators(parser: &mut Parser) {
         let op_token = parser.next().unwrap().clone();
         let op_precedence = get_operator_precedence(op_token.kind);
         
-        // 次の値を読む
+        // 次の値を読む - 括弧の場合はスキップ（既にスタックに積まれているはず）
+        if let Some(next_value_token) = parser.peek() {
+            if next_value_token.kind == TokenKind::ParenL {
+                // 括弧は parse_sentence で処理されるので、ここでは何もしない
+                // パーサーを進めずに終了
+                println!("[ERROR][Parser] Unexpected parenthesis after operator at {}:{}", 
+                    op_token.pos.line, op_token.pos.column);
+                return;
+            }
+        }
+        
+        // 通常の値を読む
         if let Some(next_value_token) = parser.next() {
             let next_value_token = next_value_token.clone();
             
-            // 値をスタックに積む
+            // 通常の値をスタックに積む
             let has_josi = push_value_to_stack(parser, &next_value_token);
             
             // 助詞がある場合は、これ以上演算子を処理せずに現在の演算子を処理して終了
