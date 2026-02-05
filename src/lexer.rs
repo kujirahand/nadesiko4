@@ -14,16 +14,14 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
         // println!("ch: {:?}", ch);
         let pos = src.get_position();
         match ch {
-            ' ' | '\t' | '\r' => { // whitespace
+            ' ' | '\t' | '\r' => { // space
                 src.next();
             }
-            '#' => {
-                // Comment
+            '#' => { // Comment
                 let comment = src.get_token('\n');
                 tokens.push(Token::new(TokenKind::Comment, Some(comment), pos));
             }
-            '0'..='9' => {
-                // Number
+            '0'..='9' => { // Number
                 let mut number = String::new();
                 while let Some(c) = src.peek() {
                     if c.is_digit(10) {
@@ -37,11 +35,10 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
                 tok.josi = get_josi(src, true);
                 tokens.push(tok);
             }
-            'a'..='z' | 'A'..='Z' => {
-                // Alphabetic word
+            'a'..='z' | 'A'..='Z' | '_' => { // Alphabetic word
                 let mut word = String::new();
                 while let Some(c) = src.peek() {
-                    if c.is_alphabetic() {
+                    if c.is_alphabetic() || c == '_' {
                         word.push(c);
                         src.next();
                     } else {
@@ -52,22 +49,22 @@ pub fn lex(src: &mut Source) -> Vec<Token> {
                 tok.josi = get_josi(src, true);
                 tokens.push(tok);
             }
-            '"' => {
+            '"' => { // string literal
                 let mut tok = get_string_literal(src, '"', '"');
                 tok.josi = get_josi(src, true);
                 tokens.push(tok);
             }
-            '「' => {
+            '「' => { // string literal
                 let mut tok = get_string_literal(src, '「', '」');
                 tok.josi = get_josi(src, true);
                 tokens.push(tok);
             }
-            '。' | ';' | '\n' => {
-                // Statement terminator
+            '。' | ';' | '\n' => { // Statement terminator
                 let symbol = ch.to_string();
                 src.next();
                 tokens.push(Token::new(TokenKind::EOS, Some(symbol), pos));
             }
+            // Operators
             '+' | '＋' => tokens.push(get_operator(src, '+', TokenKind::Plus)),
             '-' | '−' => tokens.push(get_operator(src, '-', TokenKind::Minus)),
             '*' | '＊' | '×' => tokens.push(get_operator(src, '*', TokenKind::Mul)),
