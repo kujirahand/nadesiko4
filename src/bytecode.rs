@@ -16,6 +16,12 @@ pub enum ByteCodeKind {
     Sub,
     Mul,
     Div,
+    Gt,
+    GtEq,
+    Lt,
+    LtEq,
+    Equal,
+    NotEq,
     Let,
 }
 
