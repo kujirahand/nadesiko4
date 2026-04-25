@@ -19,13 +19,19 @@ pub fn run(sys: &mut NakoSystem) -> bool {
             ByteCodeKind::Sub => exec_sub(sys, &code),
             ByteCodeKind::Mul => exec_mul(sys, &code),
             ByteCodeKind::Div => exec_div(sys, &code),
+            ByteCodeKind::Gt => exec_gt(sys, &code),
+            ByteCodeKind::GtEq => exec_gteq(sys, &code),
+            ByteCodeKind::Lt => exec_lt(sys, &code),
+            ByteCodeKind::LtEq => exec_lteq(sys, &code),
+            ByteCodeKind::Equal => exec_equal(sys, &code),
+            ByteCodeKind::NotEq => exec_not_equal(sys, &code),
             ByteCodeKind::Let => exec_let(sys, &code),
         };
-        
+
         if !result {
             return false;
         }
-        
+
         pc += 1;
     }
 
@@ -153,6 +159,92 @@ fn exec_div(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
         }
     } else {
         sys.error("Stack underflow on DIV operation");
+        false
+    }
+}
+
+fn exec_gt(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
+    if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
+        if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
+            let result = if l > r { 1.0 } else { 0.0 };
+            sys.stack.push(crate::value::Value::from_number(result));
+            true
+        } else {
+            sys.error("GT operation requires numeric values");
+            false
+        }
+    } else {
+        sys.error("Stack underflow on GT operation");
+        false
+    }
+}
+
+fn exec_gteq(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
+    if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
+        if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
+            let result = if l >= r { 1.0 } else { 0.0 };
+            sys.stack.push(crate::value::Value::from_number(result));
+            true
+        } else {
+            sys.error("GTEQ operation requires numeric values");
+            false
+        }
+    } else {
+        sys.error("Stack underflow on GTEQ operation");
+        false
+    }
+}
+
+fn exec_lt(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
+    if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
+        if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
+            let result = if l < r { 1.0 } else { 0.0 };
+            sys.stack.push(crate::value::Value::from_number(result));
+            true
+        } else {
+            sys.error("LT operation requires numeric values");
+            false
+        }
+    } else {
+        sys.error("Stack underflow on LT operation");
+        false
+    }
+}
+
+fn exec_lteq(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
+    if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
+        if let (Some(l), Some(r)) = (left.to_number(), right.to_number()) {
+            let result = if l <= r { 1.0 } else { 0.0 };
+            sys.stack.push(crate::value::Value::from_number(result));
+            true
+        } else {
+            sys.error("LTEQ operation requires numeric values");
+            false
+        }
+    } else {
+        sys.error("Stack underflow on LTEQ operation");
+        false
+    }
+}
+
+fn exec_equal(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
+    if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
+        let result = if left == right { 1.0 } else { 0.0 };
+        sys.stack.push(crate::value::Value::from_number(result));
+        true
+    } else {
+        sys.error("Stack underflow on EQUAL operation");
+        false
+    }
+}
+
+fn exec_not_equal(sys: &mut NakoSystem, _code: &ByteCode) -> bool {
+    if let (Some(right), Some(left)) = (sys.stack.pop(), sys.stack.pop()) {
+        let result = if left != right { 1.0 } else { 0.0 };
+        sys.stack.push(crate::value::Value::from_number(result));
+        true
+    } else {
+        sys.error("Stack underflow on NOTEQ operation");
         false
     }
 }

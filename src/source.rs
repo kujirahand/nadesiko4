@@ -155,7 +155,9 @@ impl Source {
         while let Some(ch) = self.next() {
             substring.push(ch);
             remain -= 1;
-            if remain <= 0 { break; }
+            if remain == 0 {
+                break;
+            }
         }
         substring
     }
@@ -204,7 +206,7 @@ impl Source {
 
 #[cfg(test)]
 mod tests {
-    use super::{Source};
+    use super::Source;
 
     #[test]
     fn next_and_positions_progress() {
@@ -343,4 +345,3 @@ mod tests {
         assert_eq!(cur.peek(), Some('a'));
     }
 }
-
